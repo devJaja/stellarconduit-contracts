@@ -83,6 +83,10 @@ impl RelayRegistryContract {
 
     /// Deposit stake tokens on-chain for a registered relay node.
     ///
+    /// This function allows a registered relay node to deposit stake tokens on-chain.
+    /// Once the node's total stake reaches the protocol minimum, its status is
+    /// automatically promoted to Active.
+    ///
     /// # Parameters
     /// - `env`: Soroban environment for the current contract invocation.
     /// - `node_address`: Stellar account address of the relay node. Must authorize this call.
