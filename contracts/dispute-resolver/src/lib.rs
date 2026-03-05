@@ -27,7 +27,7 @@
 
 #![no_std]
 
-use soroban_sdk::{contract, contractimpl, Env};
+use soroban_sdk::{contract, contractimpl};
 
 pub mod errors;
 pub mod storage;

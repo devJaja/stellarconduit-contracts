@@ -81,35 +81,49 @@ impl RelayRegistryContract {
         Ok(())
     }
 
-    pub fn stake(
-        env: Env,
-        node_address: Address,
-        amount: i128,
-    ) -> Result<RelayNode, ContractError> {
+    /// Deposit stake tokens on-chain for a registered relay node.
+    ///
+    /// # Parameters
+    /// - `env`: Soroban environment for the current contract invocation.
+    /// - `node_address`: Stellar account address of the relay node. Must authorize this call.
+    /// - `amount`: Amount of tokens to stake. Must be greater than zero.
+    ///
+    /// # Errors
+    /// - `ContractError::NotRegistered` if the node is not found in the registry.
+    /// - `ContractError::NodeSlashed` if the node has been slashed.
+    /// - `ContractError::InsufficientStake` if the `amount` is zero or negative.
+    /// - `ContractError::Overflow` if adding the stake causes an arithmetic overflow.
+    pub fn stake(env: Env, node_address: Address, amount: i128) -> Result<(), ContractError> {
         node_address.require_auth();
-        if amount <= 0 {
-            return Err(ContractError::InsufficientStake);
-        }
 
         let mut node =
             storage::get_node(&env, &node_address).ok_or(ContractError::NotRegistered)?;
+
         if matches!(node.status, NodeStatus::Slashed) {
             return Err(ContractError::NodeSlashed);
         }
 
-        node.stake = node
+        if amount <= 0 {
+            return Err(ContractError::InsufficientStake);
+        }
+
+        let new_stake = node
             .stake
             .checked_add(amount)
             .ok_or(ContractError::Overflow)?;
 
-        if node.stake < storage::get_min_stake(&env) {
-            return Err(ContractError::InsufficientStake);
+        let min_stake = storage::get_min_stake(&env);
+        if new_stake >= min_stake {
+            node.status = NodeStatus::Active;
         }
 
-        node.status = NodeStatus::Active;
         node.last_active = env.ledger().timestamp();
+        node.stake = new_stake;
+
+        // TODO: SAC transfer
         storage::set_node(&env, &node_address, &node);
-        Ok(node)
+
+        Ok(())
     }
 
     pub fn unstake(
