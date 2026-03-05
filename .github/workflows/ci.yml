@@ -1,22 +1,54 @@
-name: Rust
+name: CI
 
 on:
   push:
-    branches: [ "main" ]
+    branches: ["main"]
   pull_request:
-    branches: [ "main" ]
+    branches: ["main"]
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  build:
-
+  build-and-test:
     runs-on: ubuntu-latest
 
     steps:
-    - uses: actions/checkout@v4
-    - name: Build
-      run: cargo build --verbose
-    - name: Run tests
-      run: cargo test --verbose
+      # Step 1: Checkout the repository code
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      # Step 2: Install Rust stable toolchain with WASM target, rustfmt, and clippy
+      - name: Install Rust
+        uses: dtolnay/rust-toolchain@stable
+        with:
+          targets: wasm32-unknown-unknown
+          components: rustfmt, clippy
+
+      # Step 3: Cache Rust dependencies to speed up subsequent runs
+      - name: Rust Cache
+        uses: Swatinem/rust-cache@v2
+
+      # Step 4: Install Stellar CLI (pre-compiled binary for faster CI)
+      # Using the pre-compiled binary avoids the slow `cargo install` compilation step
+      - name: Install Stellar CLI
+        run: |
+          curl -fsSL https://github.com/stellar/stellar-cli/releases/latest/download/stellar-cli-x86_64-unknown-linux-gnu.tar.gz \
+            | tar -xz -C /usr/local/bin stellar
+          stellar --version
+
+      # Step 5: Check code formatting — fails if any file is not properly formatted
+      - name: Check Formatting
+        run: cargo fmt --all -- --check
+
+      # Step 6: Run Clippy linter — treat all warnings as errors
+      - name: Lint (Clippy)
+        run: cargo clippy --all-targets --all-features -- -D warnings
+
+      # Step 7: Run all tests across the entire workspace
+      - name: Run Tests
+        run: cargo test --workspace
+
+      # Step 8: Build all contracts to WASM to verify they compile successfully
+      - name: Build Contracts (WASM)
+        run: stellar contract build
