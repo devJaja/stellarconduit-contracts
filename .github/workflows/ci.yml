@@ -22,7 +22,7 @@ jobs:
       - name: Install Rust
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: wasm32-unknown-unknown
+          targets: wasm32v1-none,wasm32-unknown-unknown
           components: rustfmt, clippy
 
       # Step 3: Cache Rust dependencies
