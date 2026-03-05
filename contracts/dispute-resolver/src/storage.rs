@@ -20,7 +20,7 @@
 //!
 //! implementation tracked in GitHub issue
 
-use soroban_sdk::{contracttype, Address, Env};
+use soroban_sdk::{contracttype, Address, BytesN, Env};
 
 use crate::types::{Dispute, Ruling};
 
@@ -32,6 +32,7 @@ pub enum DataKey {
     Ruling(u64),
     ResolutionWindow,
     Admin,
+    TxDispute(BytesN<32>),
 }
 
 /// Load a dispute by its ID. Returns None if not found.
@@ -102,4 +103,18 @@ pub fn get_admin(env: &Env) -> Address {
 /// Set the admin address.
 pub fn set_admin(env: &Env, admin: &Address) {
     env.storage().instance().set(&DataKey::Admin, admin);
+}
+
+/// Load the dispute ID associated with a tx_id. Returns None if none exists.
+pub fn get_dispute_by_tx(env: &Env, tx_id: &BytesN<32>) -> Option<u64> {
+    env.storage()
+        .persistent()
+        .get(&DataKey::TxDispute(tx_id.clone()))
+}
+
+/// Record that a given tx_id maps to a specific dispute_id.
+pub fn set_dispute_by_tx(env: &Env, tx_id: &BytesN<32>, dispute_id: u64) {
+    env.storage()
+        .persistent()
+        .set(&DataKey::TxDispute(tx_id.clone()), &dispute_id);
 }
