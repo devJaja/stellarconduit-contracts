@@ -41,6 +41,39 @@ pub struct TreasuryContract;
 
 #[contractimpl]
 impl TreasuryContract {
+    /// Returns the current treasury token balance.
+    ///
+    /// Public view function; never errors. Returns 0 if balance is unset.
+    pub fn get_balance(env: Env) -> i128 {
+        storage::get_balance(&env)
+    }
+
+    /// Returns a specific history entry by its ID for auditing.
+    ///
+    /// Uses `ContractError::ProgramNotFound` when an entry is not found.
+    pub fn get_history(env: Env, entry_id: u64) -> Result<TreasuryEntry, ContractError> {
+        storage::get_entry(&env, entry_id).ok_or(ContractError::ProgramNotFound)
+    }
+
+    /// One-time setup configuring the admin and token address.
+    ///
+    /// First caller wins; no auth required. Fails if already initialized.
+    pub fn initialize(
+        env: Env,
+        admin: Address,
+        token_address: Address,
+    ) -> Result<(), ContractError> {
+        if storage::has_admin(&env) {
+            return Err(ContractError::AlreadyInitialized);
+        }
+
+        storage::set_admin(&env, &admin);
+        storage::set_token_address(&env, &token_address);
+        storage::set_balance(&env, 0);
+
+        Ok(())
+    }
+
     /// Deposit funds into the protocol treasury.
     ///
     /// # Parameters

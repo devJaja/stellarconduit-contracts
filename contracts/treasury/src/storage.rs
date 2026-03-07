@@ -24,9 +24,9 @@
 //!
 //! implementation tracked in GitHub issue
 
-use soroban_sdk::{contracttype, Address, Env};
+use soroban_sdk::{contracttype, Address, Env, String};
 
-use crate::types::{SpendingProgram, TreasuryEntry};
+use crate::types::{AllocationRecord, SpendingProgram, TreasuryEntry};
 
 /// Storage keys for the treasury contract.
 #[contracttype]
@@ -38,6 +38,8 @@ pub enum DataKey {
     EntryCount,
     /// A TreasuryEntry keyed by entry_id.
     Entry(u64),
+    /// Allocation records keyed by program name.
+    Allocation(String),
     /// A SpendingProgram keyed by program_id.
     SpendingProgram(u64),
     /// Address authorized to perform withdrawals and allocations.
@@ -46,17 +48,14 @@ pub enum DataKey {
     TokenAddress,
 }
 
-/// Load the current treasury balance.
 pub fn get_balance(env: &Env) -> i128 {
     env.storage().instance().get(&DataKey::Balance).unwrap_or(0)
 }
 
-/// Persist an updated treasury balance.
 pub fn set_balance(env: &Env, balance: i128) {
     env.storage().instance().set(&DataKey::Balance, &balance);
 }
 
-/// Load a specific history entry by ID.
 pub fn get_entry(env: &Env, entry_id: u64) -> Option<TreasuryEntry> {
     env.storage().persistent().get(&DataKey::Entry(entry_id))
 }
@@ -77,6 +76,32 @@ pub fn get_entry_count(env: &Env) -> u64 {
         .instance()
         .get(&DataKey::EntryCount)
         .unwrap_or(0)
+}
+
+pub fn set_entry_count(env: &Env, count: u64) {
+    env.storage().instance().set(&DataKey::EntryCount, &count);
+}
+
+pub fn append_entry(env: &Env, entry: &TreasuryEntry) {
+    let next_id = get_entry_count(env)
+        .checked_add(1)
+        .expect("entry count overflow");
+    env.storage()
+        .persistent()
+        .set(&DataKey::Entry(next_id), entry);
+    set_entry_count(env, next_id);
+}
+
+pub fn get_allocation(env: &Env, program: &String) -> Option<AllocationRecord> {
+    env.storage()
+        .persistent()
+        .get(&DataKey::Allocation(program.clone()))
+}
+
+pub fn set_allocation(env: &Env, program: &String, record: &AllocationRecord) {
+    env.storage()
+        .persistent()
+        .set(&DataKey::Allocation(program.clone()), record);
 }
 
 /// Load a spending program by ID.
@@ -104,6 +129,11 @@ pub fn get_admin(env: &Env) -> Address {
 /// Set the treasury admin address.
 pub fn set_admin(env: &Env, admin: &Address) {
     env.storage().instance().set(&DataKey::Admin, admin);
+}
+
+/// Check if the admin address is set.
+pub fn has_admin(env: &Env) -> bool {
+    env.storage().instance().has(&DataKey::Admin)
 }
 
 /// Load the treasury token SAC address.
