@@ -27,7 +27,7 @@
 
 #![no_std]
 
-use soroban_sdk::{contract, contractimpl, Address, Env};
+use soroban_sdk::{contract, contractimpl, token, Address, Env, IntoVal};
 
 pub mod errors;
 pub mod storage;
@@ -59,18 +59,19 @@ pub struct FeeDistributorContract;
 
 #[contractimpl]
 impl FeeDistributorContract {
-    /// Initialize the contract with admin address, fee rate, treasury share, and treasury address.
+    /// Initialize the contract with admin address, fee rate, treasury share, treasury address, and token address.
     ///
     /// This is a one-time setup function called immediately after the contract is deployed.
-    /// It sets the admin address, fee rate, treasury share percentage, and treasury address.
+    /// It sets the admin address, fee rate, treasury share percentage, treasury address, and token address.
     /// It can only be called once.
     ///
     /// # Parameters
     /// - `env`: Soroban environment for the current contract invocation.
-    /// - `admin`: Address of the admin account authorized to update fee config.
+    /// - `council`: Admin council authorized to update fee config.
     /// - `fee_rate_bps`: Fee rate in basis points (e.g., 50 = 0.5%). Must be between 1 and 10000.
     /// - `treasury_share_bps`: Treasury's share of each distribution in basis points (e.g., 1000 = 10%).
     /// - `treasury`: Address of the treasury contract that receives the treasury share.
+    /// - `token`: Address of the token contract used for fee payments.
     ///
     /// # Errors
     /// - `ContractError::AlreadyInitialized` if the contract has already been initialized.
@@ -80,6 +81,7 @@ impl FeeDistributorContract {
         fee_rate_bps: u32,
         treasury_share_bps: u32,
         treasury: Address,
+        token: Address,
     ) -> Result<(), ContractError> {
         // Guard against re-initialization
         if env.storage().instance().has(&storage::DataKey::FeeConfig) {
@@ -103,6 +105,7 @@ impl FeeDistributorContract {
         };
         storage::set_fee_config(&env, &config);
         storage::set_treasury_address(&env, &treasury);
+        storage::set_token_address(&env, &token);
 
         Ok(())
     }
@@ -148,7 +151,8 @@ impl FeeDistributorContract {
     ///
     /// This function calculates the fee, credits the relay node's earnings,
     /// allocates the protocol treasury share, and permanently records the
-    /// distribution event.
+    /// distribution event. The treasury share is automatically transferred
+    /// to the treasury contract via cross-contract call.
     ///
     /// # Parameters
     /// - `env`: Soroban environment.
@@ -160,6 +164,7 @@ impl FeeDistributorContract {
     /// - `ContractError::BatchAlreadyDistributed` if `batch_id` has already been processed.
     /// - `ContractError::InvalidBatchSize` if `batch_size` is zero.
     /// - `ContractError::Overflow` if fee/split calculation overflows.
+    /// - `ContractError::TreasuryTransferFailed` if the treasury deposit fails.
     pub fn distribute(
         env: Env,
         relay_address: Address,
@@ -204,6 +209,26 @@ impl FeeDistributorContract {
         };
         storage::set_fee_entry(&env, batch_id, &entry);
 
+        // Transfer treasury share to treasury contract
+        if treasury_share > 0 {
+            let treasury_addr = storage::get_treasury_address(&env);
+            let token_addr = storage::get_token_address(&env);
+            let token_client = token::Client::new(&env, &token_addr);
+
+            token_client.transfer(
+                &env.current_contract_address(),
+                &treasury_addr,
+                &treasury_share,
+            );
+
+            // Call treasury.deposit() via cross-contract invocation
+            env.invoke_contract::<()>(
+                &treasury_addr,
+                &soroban_sdk::Symbol::new(&env, "deposit"),
+                soroban_sdk::vec![&env, env.current_contract_address().into_val(&env), treasury_share.into_val(&env)],
+            );
+        }
+
         env.events().publish(
             (
                 soroban_sdk::Symbol::new(&env, "fee_distributor"),
@@ -217,7 +242,6 @@ impl FeeDistributorContract {
             ),
         );
 
-        // TODO: SAC transfer treasury_share to treasury
         Ok(())
     }
 

@@ -26,6 +26,8 @@ pub enum DataKey {
     FeeConfig,
     /// Stores the treasury contract address.
     TreasuryAddress,
+    /// Stores the token contract address.
+    TokenAddress,
 }
 
 /// Load the earnings record for a relay node. Returns a zeroed record if not found.
@@ -137,4 +139,32 @@ pub fn set_treasury_address(env: &Env, address: &Address) {
     env.storage()
         .instance()
         .set(&DataKey::TreasuryAddress, address);
+}
+
+/// Load the token contract address.
+///
+/// # Parameters
+/// - `env`: Soroban environment.
+///
+/// # Returns
+/// The `Address` of the token contract.
+///
+/// # Panics
+/// Panics if the token address has not been initialized.
+pub fn get_token_address(env: &Env) -> Address {
+    env.storage()
+        .instance()
+        .get(&DataKey::TokenAddress)
+        .expect("token address not initialized")
+}
+
+/// Set the token contract address.
+///
+/// # Parameters
+/// - `env`: Soroban environment.
+/// - `address`: The token contract address to store.
+pub fn set_token_address(env: &Env, address: &Address) {
+    env.storage()
+        .instance()
+        .set(&DataKey::TokenAddress, address);
 }
