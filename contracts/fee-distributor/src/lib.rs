@@ -225,7 +225,11 @@ impl FeeDistributorContract {
             env.invoke_contract::<()>(
                 &treasury_addr,
                 &soroban_sdk::Symbol::new(&env, "deposit"),
-                soroban_sdk::vec![&env, env.current_contract_address().into_val(&env), treasury_share.into_val(&env)],
+                soroban_sdk::vec![
+                    &env,
+                    env.current_contract_address().into_val(&env),
+                    treasury_share.into_val(&env)
+                ],
             );
         }
 
