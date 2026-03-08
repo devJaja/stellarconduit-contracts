@@ -42,4 +42,8 @@ pub enum ContractError {
     InvalidConfig = 15,
     /// One or both relay chain proof signatures failed Ed25519 verification.
     InvalidProofSignature = 16,
+    /// Not enough council members authorized this action.
+    InsufficientApprovals = 17,
+    /// Council config is invalid (threshold > members, etc.).
+    InvalidCouncilConfig = 18,
 }

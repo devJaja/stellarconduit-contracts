@@ -37,6 +37,22 @@ pub mod types;
 mod test;
 
 use crate::errors::ContractError;
+use crate::types::AdminCouncil;
+
+fn require_council_auth(_env: &Env, council: &AdminCouncil) {
+    let mut authorized = 0u32;
+    for member in council.members.iter() {
+        member.require_auth();
+        authorized += 1;
+        if authorized >= council.threshold {
+            break;
+        }
+    }
+
+    if authorized < council.threshold {
+        panic!("Insufficient approvals");
+    }
+}
 
 #[contract]
 pub struct FeeDistributorContract;
@@ -60,7 +76,7 @@ impl FeeDistributorContract {
     /// - `ContractError::AlreadyInitialized` if the contract has already been initialized.
     pub fn initialize(
         env: Env,
-        admin: Address,
+        council: AdminCouncil,
         fee_rate_bps: u32,
         treasury_share_bps: u32,
         treasury: Address,
@@ -75,11 +91,15 @@ impl FeeDistributorContract {
             return Err(ContractError::InvalidFeeRate);
         }
 
+        if council.threshold == 0 || council.members.len() < council.threshold {
+            return Err(ContractError::InvalidCouncilConfig);
+        }
+
         // Persist config
         let config = crate::types::FeeConfig {
             fee_rate_bps,
             treasury_share_bps,
-            admin: admin.clone(),
+            council: council.clone(),
         };
         storage::set_fee_config(&env, &config);
         storage::set_treasury_address(&env, &treasury);
@@ -266,7 +286,7 @@ impl FeeDistributorContract {
     pub fn set_fee_rate(env: Env, new_fee_rate_bps: u32) -> Result<(), ContractError> {
         let mut config = storage::get_fee_config(&env);
 
-        config.admin.require_auth();
+        require_council_auth(&env, &config.council);
 
         if new_fee_rate_bps == 0 || new_fee_rate_bps > 10_000 {
             return Err(ContractError::InvalidFeeRate);

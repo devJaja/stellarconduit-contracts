@@ -33,7 +33,7 @@ pub enum DataKey {
     NodeCount,
     MinStake,
     StakeLockPeriod,
-    Admin,
+    AdminCouncil,
     TokenAddress,
 }
 
@@ -97,15 +97,17 @@ pub fn set_stake_lock_period(env: &Env, period: u32) {
         .set(&DataKey::StakeLockPeriod, &period);
 }
 
-pub fn get_admin(env: &Env) -> Address {
+pub fn get_admin_council(env: &Env) -> crate::types::AdminCouncil {
     env.storage()
         .instance()
-        .get(&DataKey::Admin)
-        .expect("admin not initialized")
+        .get(&DataKey::AdminCouncil)
+        .expect("admin council not initialized")
 }
 
-pub fn set_admin(env: &Env, admin: &Address) {
-    env.storage().instance().set(&DataKey::Admin, admin);
+pub fn set_admin_council(env: &Env, council: &crate::types::AdminCouncil) {
+    env.storage()
+        .instance()
+        .set(&DataKey::AdminCouncil, council);
 }
 
 pub fn get_token_address(env: &Env) -> Address {

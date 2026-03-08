@@ -15,8 +15,14 @@ fn setup<'a>() -> (Env, FeeDistributorContractClient<'a>) {
     let contract_id = env.register(FeeDistributorContract, ());
     let client = FeeDistributorContractClient::new(&env, &contract_id);
     let admin = Address::generate(&env);
+    let mut members = soroban_sdk::Vec::new(&env);
+    members.push_back(admin.clone());
+    let council = crate::types::AdminCouncil {
+        members,
+        threshold: 1,
+    };
     let treasury = Address::generate(&env);
-    client.initialize(&admin, &50u32, &1000u32, &treasury);
+    client.initialize(&council, &50u32, &1000u32, &treasury);
     (env, client)
 }
 
@@ -31,9 +37,15 @@ fn test_initialize_success() {
     let contract_id = env.register(FeeDistributorContract, ());
     let client = FeeDistributorContractClient::new(&env, &contract_id);
     let admin = Address::generate(&env);
+    let mut members = soroban_sdk::Vec::new(&env);
+    members.push_back(admin.clone());
+    let council = crate::types::AdminCouncil {
+        members,
+        threshold: 1,
+    };
     let treasury = Address::generate(&env);
 
-    client.initialize(&admin, &50u32, &1000u32, &treasury);
+    client.initialize(&council, &50u32, &1000u32, &treasury);
 
     // Verify fee config is set correctly by calling calculate_fee
     // With fee_rate_bps = 50 and batch_size = 200, fee should be 1
@@ -48,12 +60,18 @@ fn test_initialize_already_initialized() {
     let contract_id = env.register(FeeDistributorContract, ());
     let client = FeeDistributorContractClient::new(&env, &contract_id);
     let admin = Address::generate(&env);
+    let mut members = soroban_sdk::Vec::new(&env);
+    members.push_back(admin.clone());
+    let council = crate::types::AdminCouncil {
+        members,
+        threshold: 1,
+    };
     let treasury = Address::generate(&env);
 
-    client.initialize(&admin, &50u32, &1000u32, &treasury);
+    client.initialize(&council, &50u32, &1000u32, &treasury);
 
     // Second call should fail
-    let result = client.try_initialize(&admin, &50u32, &1000u32, &treasury);
+    let result = client.try_initialize(&council, &50u32, &1000u32, &treasury);
     assert_eq!(result, Err(Ok(ContractError::AlreadyInitialized)));
 }
 
@@ -298,9 +316,15 @@ fn test_set_fee_rate_success() {
     let contract_id = env.register(FeeDistributorContract, ());
     let client = FeeDistributorContractClient::new(&env, &contract_id);
     let admin = Address::generate(&env);
+    let mut members = soroban_sdk::Vec::new(&env);
+    members.push_back(admin.clone());
+    let council = crate::types::AdminCouncil {
+        members,
+        threshold: 1,
+    };
     let treasury = Address::generate(&env);
 
-    client.initialize(&admin, &50u32, &1000u32, &treasury);
+    client.initialize(&council, &50u32, &1000u32, &treasury);
 
     // Update fee rate to 100 bps (1%)
     client.set_fee_rate(&100u32);
@@ -318,9 +342,15 @@ fn test_set_fee_rate_invalid_zero() {
     let contract_id = env.register(FeeDistributorContract, ());
     let client = FeeDistributorContractClient::new(&env, &contract_id);
     let admin = Address::generate(&env);
+    let mut members = soroban_sdk::Vec::new(&env);
+    members.push_back(admin.clone());
+    let council = crate::types::AdminCouncil {
+        members,
+        threshold: 1,
+    };
     let treasury = Address::generate(&env);
 
-    client.initialize(&admin, &50u32, &1000u32, &treasury);
+    client.initialize(&council, &50u32, &1000u32, &treasury);
 
     // Try to set fee rate to 0
     let result = client.try_set_fee_rate(&0u32);
@@ -334,9 +364,15 @@ fn test_set_fee_rate_invalid_above_max() {
     let contract_id = env.register(FeeDistributorContract, ());
     let client = FeeDistributorContractClient::new(&env, &contract_id);
     let admin = Address::generate(&env);
+    let mut members = soroban_sdk::Vec::new(&env);
+    members.push_back(admin.clone());
+    let council = crate::types::AdminCouncil {
+        members,
+        threshold: 1,
+    };
     let treasury = Address::generate(&env);
 
-    client.initialize(&admin, &50u32, &1000u32, &treasury);
+    client.initialize(&council, &50u32, &1000u32, &treasury);
 
     // Try to set fee rate to 10001 (above max of 10000)
     let result = client.try_set_fee_rate(&10001u32);
@@ -351,9 +387,15 @@ fn test_set_fee_rate_unauthorized() {
     let contract_id = env.register(FeeDistributorContract, ());
     let client = FeeDistributorContractClient::new(&env, &contract_id);
     let admin = Address::generate(&env);
+    let mut members = soroban_sdk::Vec::new(&env);
+    members.push_back(admin.clone());
+    let council = crate::types::AdminCouncil {
+        members,
+        threshold: 1,
+    };
     let treasury = Address::generate(&env);
 
-    client.initialize(&admin, &50u32, &1000u32, &treasury);
+    client.initialize(&council, &50u32, &1000u32, &treasury);
 
     // Create a new env without mock_all_auths and try to call as non-admin
     let env2 = Env::default();
@@ -451,10 +493,16 @@ fn test_calculate_fee_with_different_rates() {
     let contract_id = env.register(FeeDistributorContract, ());
     let client = FeeDistributorContractClient::new(&env, &contract_id);
     let admin = Address::generate(&env);
+    let mut members = soroban_sdk::Vec::new(&env);
+    members.push_back(admin.clone());
+    let council = crate::types::AdminCouncil {
+        members,
+        threshold: 1,
+    };
     let treasury = Address::generate(&env);
 
     // Initialize with fee_rate_bps = 100 (1%)
-    client.initialize(&admin, &100u32, &1000u32, &treasury);
+    client.initialize(&council, &100u32, &1000u32, &treasury);
 
     // With batch_size = 200: fee = 200 * 100 / 10000 = 2
     let fee = client.calculate_fee(&200u32);
@@ -547,10 +595,16 @@ fn test_fee_rate_change_affects_future_distributions() {
     let contract_id = env.register(FeeDistributorContract, ());
     let client = FeeDistributorContractClient::new(&env, &contract_id);
     let admin = Address::generate(&env);
+    let mut members = soroban_sdk::Vec::new(&env);
+    members.push_back(admin.clone());
+    let council = crate::types::AdminCouncil {
+        members,
+        threshold: 1,
+    };
     let treasury = Address::generate(&env);
     let relay = Address::generate(&env);
 
-    client.initialize(&admin, &50u32, &1000u32, &treasury);
+    client.initialize(&council, &50u32, &1000u32, &treasury);
 
     // Distribute with initial rate
     client.distribute(&relay, &1u64, &200u32); // fee = 1
@@ -573,11 +627,17 @@ fn test_treasury_share_calculation_edge_cases() {
     let contract_id = env.register(FeeDistributorContract, ());
     let client = FeeDistributorContractClient::new(&env, &contract_id);
     let admin = Address::generate(&env);
+    let mut members = soroban_sdk::Vec::new(&env);
+    members.push_back(admin.clone());
+    let council = crate::types::AdminCouncil {
+        members,
+        threshold: 1,
+    };
     let treasury = Address::generate(&env);
     let relay = Address::generate(&env);
 
     // Initialize with 50% treasury share
-    client.initialize(&admin, &100u32, &5000u32, &treasury);
+    client.initialize(&council, &100u32, &5000u32, &treasury);
 
     client.distribute(&relay, &1u64, &1000u32);
     // fee = 1000 * 100 / 10000 = 10
@@ -633,9 +693,15 @@ fn test_set_fee_rate_boundary_values() {
     let contract_id = env.register(FeeDistributorContract, ());
     let client = FeeDistributorContractClient::new(&env, &contract_id);
     let admin = Address::generate(&env);
+    let mut members = soroban_sdk::Vec::new(&env);
+    members.push_back(admin.clone());
+    let council = crate::types::AdminCouncil {
+        members,
+        threshold: 1,
+    };
     let treasury = Address::generate(&env);
 
-    client.initialize(&admin, &50u32, &1000u32, &treasury);
+    client.initialize(&council, &100u32, &1000u32, &treasury);
 
     // Test minimum valid rate (1)
     client.set_fee_rate(&1u32);
@@ -655,11 +721,17 @@ fn test_distribute_with_zero_treasury_share() {
     let contract_id = env.register(FeeDistributorContract, ());
     let client = FeeDistributorContractClient::new(&env, &contract_id);
     let admin = Address::generate(&env);
+    let mut members = soroban_sdk::Vec::new(&env);
+    members.push_back(admin.clone());
+    let council = crate::types::AdminCouncil {
+        members,
+        threshold: 1,
+    };
     let treasury = Address::generate(&env);
     let relay = Address::generate(&env);
 
     // Initialize with 0% treasury share
-    client.initialize(&admin, &100u32, &0u32, &treasury);
+    client.initialize(&council, &100u32, &0u32, &treasury);
 
     client.distribute(&relay, &1u64, &1000u32);
     // fee = 1000 * 100 / 10000 = 10
@@ -676,12 +748,18 @@ fn test_distribute_with_max_treasury_share() {
     env.mock_all_auths();
     let contract_id = env.register(FeeDistributorContract, ());
     let client = FeeDistributorContractClient::new(&env, &contract_id);
-    let admin = Address::generate(&env);
+    let council_admin = Address::generate(&env);
+    let mut members = soroban_sdk::Vec::new(&env);
+    members.push_back(council_admin.clone());
+    let council = crate::types::AdminCouncil {
+        members,
+        threshold: 1,
+    };
     let treasury = Address::generate(&env);
     let relay = Address::generate(&env);
 
     // Initialize with 100% treasury share
-    client.initialize(&admin, &100u32, &10000u32, &treasury);
+    client.initialize(&council, &100u32, &10000u32, &treasury);
 
     client.distribute(&relay, &1u64, &1000u32);
     // fee = 1000 * 100 / 10000 = 10

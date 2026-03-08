@@ -56,4 +56,10 @@ pub enum ContractError {
 
     /// A provided numeric argument is invalid (zero or negative).
     InvalidAmount = 11,
+
+    /// Not enough council members authorized this action
+    InsufficientApprovals = 12,
+
+    /// Council config is invalid (threshold > members, etc.)
+    InvalidCouncilConfig = 13,
 }

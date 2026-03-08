@@ -31,7 +31,7 @@ pub enum DataKey {
     DisputeCount,
     Ruling(u64),
     ResolutionWindow,
-    Admin,
+    AdminCouncil,
     TxDispute(BytesN<32>),
     /// Stores the raw 32-byte Ed25519 public key for an Address.
     PublicKey(Address),
@@ -94,22 +94,24 @@ pub fn set_resolution_window(env: &Env, window_ledgers: u32) {
         .set(&DataKey::ResolutionWindow, &window_ledgers);
 }
 
-/// Check if the admin address is set.
-pub fn has_admin(env: &Env) -> bool {
-    env.storage().instance().has(&DataKey::Admin)
+/// Check if the admin council is set.
+pub fn has_admin_council(env: &Env) -> bool {
+    env.storage().instance().has(&DataKey::AdminCouncil)
 }
 
-/// Get the admin address.
-pub fn get_admin(env: &Env) -> Address {
+/// Get the admin council.
+pub fn get_admin_council(env: &Env) -> crate::types::AdminCouncil {
     env.storage()
         .instance()
-        .get(&DataKey::Admin)
-        .expect("admin not set")
+        .get(&DataKey::AdminCouncil)
+        .expect("admin council not set")
 }
 
-/// Set the admin address.
-pub fn set_admin(env: &Env, admin: &Address) {
-    env.storage().instance().set(&DataKey::Admin, admin);
+/// Set the admin council.
+pub fn set_admin_council(env: &Env, council: &crate::types::AdminCouncil) {
+    env.storage()
+        .instance()
+        .set(&DataKey::AdminCouncil, council);
 }
 
 /// Load the dispute ID associated with a tx_id. Returns None if none exists.

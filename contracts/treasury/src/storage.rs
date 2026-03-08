@@ -26,7 +26,7 @@
 
 use soroban_sdk::{contracttype, Address, Env, String};
 
-use crate::types::{AllocationRecord, SpendingProgram, TreasuryEntry};
+use crate::types::{AdminCouncil, AllocationRecord, SpendingProgram, TreasuryEntry};
 
 /// Storage keys for the treasury contract.
 #[contracttype]
@@ -42,8 +42,8 @@ pub enum DataKey {
     Allocation(String),
     /// A SpendingProgram keyed by program_id.
     SpendingProgram(u64),
-    /// Address authorized to perform withdrawals and allocations.
-    Admin,
+    /// Council authorized to perform withdrawals and allocations.
+    AdminCouncil,
     /// The SAC (Stellar Asset Contract) address for the treasury token.
     TokenAddress,
 }
@@ -118,22 +118,24 @@ pub fn set_spending_program(env: &Env, program_id: u64, program: SpendingProgram
         .set(&DataKey::SpendingProgram(program_id), &program);
 }
 
-/// Load the treasury admin address.
-pub fn get_admin(env: &Env) -> Address {
+/// Load the treasury admin council.
+pub fn get_admin_council(env: &Env) -> AdminCouncil {
     env.storage()
         .instance()
-        .get(&DataKey::Admin)
-        .expect("admin not initialized")
+        .get(&DataKey::AdminCouncil)
+        .expect("admin council not initialized")
 }
 
-/// Set the treasury admin address.
-pub fn set_admin(env: &Env, admin: &Address) {
-    env.storage().instance().set(&DataKey::Admin, admin);
+/// Set the treasury admin council.
+pub fn set_admin_council(env: &Env, council: &AdminCouncil) {
+    env.storage()
+        .instance()
+        .set(&DataKey::AdminCouncil, council);
 }
 
-/// Check if the admin address is set.
-pub fn has_admin(env: &Env) -> bool {
-    env.storage().instance().has(&DataKey::Admin)
+/// Check if the admin council is set.
+pub fn has_admin_council(env: &Env) -> bool {
+    env.storage().instance().has(&DataKey::AdminCouncil)
 }
 
 /// Load the treasury token SAC address.

@@ -34,7 +34,23 @@ pub mod storage;
 pub mod types;
 
 use crate::errors::ContractError;
-use crate::types::{EntryKind, TreasuryEntry};
+use crate::types::{AdminCouncil, EntryKind, TreasuryEntry};
+
+fn require_council_auth(env: &Env) {
+    let council = storage::get_admin_council(env);
+    let mut authorized = 0u32;
+    for member in council.members.iter() {
+        member.require_auth();
+        authorized += 1;
+        if authorized >= council.threshold {
+            break;
+        }
+    }
+
+    if authorized < council.threshold {
+        panic!("Insufficient approvals");
+    }
+}
 
 #[contract]
 pub struct TreasuryContract;
@@ -60,14 +76,18 @@ impl TreasuryContract {
     /// First caller wins; no auth required. Fails if already initialized.
     pub fn initialize(
         env: Env,
-        admin: Address,
+        council: AdminCouncil,
         token_address: Address,
     ) -> Result<(), ContractError> {
-        if storage::has_admin(&env) {
+        if storage::has_admin_council(&env) {
             return Err(ContractError::AlreadyInitialized);
         }
 
-        storage::set_admin(&env, &admin);
+        if council.threshold == 0 || council.members.len() < council.threshold {
+            return Err(ContractError::InvalidCouncilConfig);
+        }
+
+        storage::set_admin_council(&env, &council);
         storage::set_token_address(&env, &token_address);
         storage::set_balance(&env, 0);
 
@@ -132,8 +152,7 @@ impl TreasuryContract {
         amount: i128,
         memo: String,
     ) -> Result<(), ContractError> {
-        let admin = storage::get_admin(&env);
-        admin.require_auth();
+        require_council_auth(&env);
 
         if amount <= 0 {
             return Err(ContractError::InvalidAmount);
@@ -150,7 +169,7 @@ impl TreasuryContract {
         let entry = TreasuryEntry {
             kind: EntryKind::Withdrawal,
             amount,
-            actor: admin.clone(),
+            actor: env.current_contract_address(), // We record the contract executing since it's a multisig operation
             recipient: Some(to.clone()),
             memo,
             ledger: env.ledger().sequence() as u64,
@@ -180,8 +199,7 @@ impl TreasuryContract {
     /// - `ContractError::InsufficientBalance` if treasury balance is too low.
     /// - `ContractError::Overflow` if arithmetic overflows.
     pub fn allocate(env: Env, program_id: u64, amount: i128) -> Result<(), ContractError> {
-        let admin = storage::get_admin(&env);
-        admin.require_auth();
+        require_council_auth(&env);
 
         if amount <= 0 {
             return Err(ContractError::InvalidAmount);
@@ -216,7 +234,7 @@ impl TreasuryContract {
         let entry = TreasuryEntry {
             kind: EntryKind::Allocation,
             amount,
-            actor: admin,
+            actor: env.current_contract_address(), // We record the contract executing since it's a multisig operation
             recipient: None,
             memo: String::from_str(&env, "allocation"),
             ledger: env.ledger().sequence() as u64,

@@ -35,7 +35,9 @@ pub mod storage;
 pub mod types;
 
 use crate::errors::ContractError;
-use crate::types::{Dispute, DisputeStatus, OptionalRelayChainProof, RelayChainProof, Ruling};
+use crate::types::{
+    AdminCouncil, Dispute, DisputeStatus, OptionalRelayChainProof, RelayChainProof, Ruling,
+};
 
 #[contract]
 pub struct DisputeResolverContract;
@@ -347,10 +349,10 @@ impl DisputeResolverContract {
     /// - `ContractError::InvalidConfig` if `resolution_window` is zero.
     pub fn initialize(
         env: Env,
-        admin: Address,
+        council: AdminCouncil,
         resolution_window: u32,
     ) -> Result<(), ContractError> {
-        if storage::has_admin(&env) {
+        if storage::has_admin_council(&env) {
             return Err(ContractError::AlreadyInitialized);
         }
 
@@ -358,7 +360,11 @@ impl DisputeResolverContract {
             return Err(ContractError::InvalidConfig);
         }
 
-        storage::set_admin(&env, &admin);
+        if council.threshold == 0 || council.members.len() < council.threshold {
+            return Err(ContractError::InvalidCouncilConfig);
+        }
+
+        storage::set_admin_council(&env, &council);
         storage::set_resolution_window(&env, resolution_window);
 
         Ok(())

@@ -18,6 +18,12 @@ fn setup<'a>() -> (
     let contract_id = env.register(TreasuryContract, ());
     let client = TreasuryContractClient::new(&env, &contract_id);
     let admin = Address::generate(&env);
+    let mut members = soroban_sdk::Vec::new(&env);
+    members.push_back(admin.clone());
+    let council = treasury::types::AdminCouncil {
+        members,
+        threshold: 1,
+    };
 
     // Deploy a mock SAC token contract required for deposit/withdraw tests
     let token_admin = Address::generate(&env);
@@ -25,7 +31,7 @@ fn setup<'a>() -> (
     let token_client = token::StellarAssetClient::new(&env, &token_address.address());
 
     // Initialize the treasury
-    client.initialize(&admin, &token_address.address());
+    client.initialize(&council, &token_address.address());
 
     (env, client, admin, token_address.address(), token_client)
 }
@@ -60,9 +66,15 @@ fn test_initialize_success() {
     let contract_id = env.register(TreasuryContract, ());
     let client = TreasuryContractClient::new(&env, &contract_id);
     let admin = Address::generate(&env);
+    let mut members = soroban_sdk::Vec::new(&env);
+    members.push_back(admin.clone());
+    let council = treasury::types::AdminCouncil {
+        members,
+        threshold: 1,
+    };
     let token = Address::generate(&env);
 
-    client.initialize(&admin, &token);
+    client.initialize(&council, &token);
 
     // Verify balance is initialized to 0
     assert_eq!(client.get_balance(), 0);
@@ -75,13 +87,19 @@ fn test_initialize_already_initialized() {
     let contract_id = env.register(TreasuryContract, ());
     let client = TreasuryContractClient::new(&env, &contract_id);
     let admin = Address::generate(&env);
+    let mut members = soroban_sdk::Vec::new(&env);
+    members.push_back(admin.clone());
+    let council = treasury::types::AdminCouncil {
+        members,
+        threshold: 1,
+    };
     let token = Address::generate(&env);
 
     // First call succeeds
-    client.initialize(&admin, &token);
+    client.initialize(&council, &token);
 
     // Second call should panic with AlreadyInitialized
-    client.initialize(&admin, &token);
+    client.initialize(&council, &token);
 }
 
 // ── deposit() tests ───────────────────────────────────────────────────────────
@@ -143,10 +161,16 @@ fn test_deposit_auth_required() {
     let contract_id = env.register(TreasuryContract, ());
     let client = TreasuryContractClient::new(&env, &contract_id);
     let admin = Address::generate(&env);
+    let mut members = soroban_sdk::Vec::new(&env);
+    members.push_back(admin.clone());
+    let council = treasury::types::AdminCouncil {
+        members,
+        threshold: 1,
+    };
     let token_admin = Address::generate(&env);
     let token_address = env.register_stellar_asset_contract_v2(token_admin.clone());
 
-    client.initialize(&admin, &token_address.address());
+    client.initialize(&council, &token_address.address());
 
     let user = Address::generate(&env);
     // This will panic because require_auth is called on `user` but we didn't mock/provide it
@@ -204,10 +228,16 @@ fn test_withdraw_unauthorized() {
     let contract_id = env.register(TreasuryContract, ());
     let client = TreasuryContractClient::new(&env, &contract_id);
     let admin = Address::generate(&env);
+    let mut members = soroban_sdk::Vec::new(&env);
+    members.push_back(admin.clone());
+    let council = treasury::types::AdminCouncil {
+        members,
+        threshold: 1,
+    };
     let token_admin = Address::generate(&env);
     let token_address = env.register_stellar_asset_contract_v2(token_admin.clone());
 
-    client.initialize(&admin, &token_address.address());
+    client.initialize(&council, &token_address.address());
 
     let recipient = Address::generate(&env);
     // Fails because admin.require_auth() is called, but auth is not mocked
@@ -316,10 +346,16 @@ fn test_allocate_unauthorized() {
     let contract_id = env.register(TreasuryContract, ());
     let client = TreasuryContractClient::new(&env, &contract_id);
     let admin = Address::generate(&env);
+    let mut members = soroban_sdk::Vec::new(&env);
+    members.push_back(admin.clone());
+    let council = treasury::types::AdminCouncil {
+        members,
+        threshold: 1,
+    };
     let token_admin = Address::generate(&env);
     let token_address = env.register_stellar_asset_contract_v2(token_admin.clone());
 
-    client.initialize(&admin, &token_address.address());
+    client.initialize(&council, &token_address.address());
 
     // Fails because admin.require_auth() is called, but auth is not mocked
     client.allocate(&1, &100);
