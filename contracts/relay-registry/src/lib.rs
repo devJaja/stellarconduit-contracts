@@ -188,13 +188,22 @@ impl RelayRegistryContract {
             address: node_address.clone(),
             stake: 0,
             status: NodeStatus::Inactive,
-            metadata,
+            metadata: metadata.clone(),
             registered_at: timestamp,
             last_active: timestamp,
         };
 
         storage::set_node(&env, &node_address, &node);
         storage::increment_node_count(&env);
+
+        env.events().publish(
+            (
+                soroban_sdk::Symbol::new(&env, "relay_registry"),
+                soroban_sdk::Symbol::new(&env, "register"),
+            ),
+            (node_address.clone(), metadata),
+        );
+
         Ok(())
     }
 
@@ -226,8 +235,13 @@ impl RelayRegistryContract {
 
         storage::set_node(&env, &node_address, &node);
 
-        env.events()
-            .publish(("update_metadata",), (node_address.clone(),));
+        env.events().publish(
+            (
+                soroban_sdk::Symbol::new(&env, "relay_registry"),
+                soroban_sdk::Symbol::new(&env, "update_metadata"),
+            ),
+            (node_address.clone(),),
+        );
 
         Ok(())
     }
@@ -280,6 +294,14 @@ impl RelayRegistryContract {
 
         storage::set_node(&env, &node_address, &node);
 
+        env.events().publish(
+            (
+                soroban_sdk::Symbol::new(&env, "relay_registry"),
+                soroban_sdk::Symbol::new(&env, "stake"),
+            ),
+            (node_address.clone(), amount),
+        );
+
         Ok(())
     }
 
@@ -327,6 +349,15 @@ impl RelayRegistryContract {
         token.transfer(&env.current_contract_address(), &node_address, &amount);
 
         storage::set_node(&env, &node_address, &node);
+
+        env.events().publish(
+            (
+                soroban_sdk::Symbol::new(&env, "relay_registry"),
+                soroban_sdk::Symbol::new(&env, "unstake"),
+            ),
+            (node_address.clone(), amount, unlock_after),
+        );
+
         Ok(node)
     }
 
@@ -344,7 +375,7 @@ impl RelayRegistryContract {
     /// - `ContractError::NotRegistered` if the node is not in the registry.
     /// - `ContractError::NodeSlashed` if the node is already slashed.
     /// - (Auth) Soroban will automatically panic if the caller is not the `Admin`.
-    pub fn slash(env: Env, node_address: Address, reason: String) -> Result<(), ContractError> {
+    pub fn slash(env: Env, node_address: Address, _reason: String) -> Result<(), ContractError> {
         require_council_auth(&env);
 
         let mut node =
@@ -356,6 +387,7 @@ impl RelayRegistryContract {
         }
 
         // Apply penalty: total loss of stake
+        let slashed_amount = node.stake;
         node.stake = 0;
         node.status = NodeStatus::Slashed;
         node.last_active = env.ledger().timestamp();
@@ -367,8 +399,13 @@ impl RelayRegistryContract {
         storage::set_node(&env, &node_address, &node);
 
         // Emit an event so the slashing reason is auditable on-chain.
-        env.events()
-            .publish(("slash",), (node_address.clone(), reason));
+        env.events().publish(
+            (
+                soroban_sdk::Symbol::new(&env, "relay_registry"),
+                soroban_sdk::Symbol::new(&env, "slash"),
+            ),
+            (node_address.clone(), slashed_amount),
+        );
 
         Ok(())
     }

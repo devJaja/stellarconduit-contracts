@@ -595,13 +595,19 @@
           "v0": {
             "topics": [
               {
-                "string": "resolve"
+                "symbol": "dispute_resolver"
+              },
+              {
+                "symbol": "resolve"
               }
             ],
             "data": {
               "vec": [
                 {
                   "u64": 1
+                },
+                {
+                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M"
                 },
                 {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M"

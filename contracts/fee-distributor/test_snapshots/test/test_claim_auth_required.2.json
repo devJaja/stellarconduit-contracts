@@ -325,7 +325,10 @@
           "v0": {
             "topics": [
               {
-                "string": "distribute"
+                "symbol": "fee_distributor"
+              },
+              {
+                "symbol": "distribute"
               }
             ],
             "data": {
@@ -340,6 +343,12 @@
                   "i128": {
                     "hi": 0,
                     "lo": 1
+                  }
+                },
+                {
+                  "i128": {
+                    "hi": 0,
+                    "lo": 0
                   }
                 }
               ]

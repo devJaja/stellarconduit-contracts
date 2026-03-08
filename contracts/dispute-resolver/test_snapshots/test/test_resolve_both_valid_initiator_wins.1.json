@@ -708,7 +708,10 @@
           "v0": {
             "topics": [
               {
-                "string": "resolve"
+                "symbol": "dispute_resolver"
+              },
+              {
+                "symbol": "resolve"
               }
             ],
             "data": {
@@ -718,6 +721,9 @@
                 },
                 {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAHK3M"
+                },
+                {
+                  "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAITA4"
                 }
               ]
             }

@@ -785,7 +785,10 @@
           "v0": {
             "topics": [
               {
-                "string": "raise_dispute"
+                "symbol": "dispute_resolver"
+              },
+              {
+                "symbol": "raise"
               }
             ],
             "data": {

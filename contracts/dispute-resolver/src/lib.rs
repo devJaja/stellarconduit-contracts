@@ -95,8 +95,13 @@ impl DisputeResolverContract {
         storage::set_dispute_by_tx(&env, &tx_id, dispute_id);
 
         // Emit event for off-chain indexers.
-        env.events()
-            .publish(("raise_dispute",), (initiator, dispute_id, tx_id));
+        env.events().publish(
+            (
+                soroban_sdk::Symbol::new(&env, "dispute_resolver"),
+                soroban_sdk::Symbol::new(&env, "raise"),
+            ),
+            (initiator, dispute_id, tx_id),
+        );
 
         Ok(dispute_id)
     }
@@ -140,7 +145,13 @@ impl DisputeResolverContract {
 
         storage::set_dispute(&env, dispute_id, &dispute);
 
-        env.events().publish(("respond",), (respondent, dispute_id));
+        env.events().publish(
+            (
+                soroban_sdk::Symbol::new(&env, "dispute_resolver"),
+                soroban_sdk::Symbol::new(&env, "respond"),
+            ),
+            (respondent, dispute_id),
+        );
 
         Ok(())
     }
@@ -192,8 +203,13 @@ impl DisputeResolverContract {
             dispute.status = DisputeStatus::Resolved;
             storage::set_dispute(&env, dispute_id, &dispute);
             storage::set_ruling(&env, dispute_id, &ruling);
-            env.events()
-                .publish(("resolve",), (dispute_id, ruling.winner.clone()));
+            env.events().publish(
+                (
+                    soroban_sdk::Symbol::new(&env, "dispute_resolver"),
+                    soroban_sdk::Symbol::new(&env, "resolve"),
+                ),
+                (dispute_id, ruling.winner.clone(), ruling.loser.clone()),
+            );
             return Ok(ruling);
         }
 
@@ -275,8 +291,13 @@ impl DisputeResolverContract {
         storage::set_dispute(&env, dispute_id, &dispute);
         storage::set_ruling(&env, dispute_id, &ruling);
 
-        env.events()
-            .publish(("resolve",), (dispute_id, ruling.winner.clone()));
+        env.events().publish(
+            (
+                soroban_sdk::Symbol::new(&env, "dispute_resolver"),
+                soroban_sdk::Symbol::new(&env, "resolve"),
+            ),
+            (dispute_id, ruling.winner.clone(), ruling.loser.clone()),
+        );
 
         Ok(ruling)
     }

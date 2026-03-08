@@ -137,7 +137,13 @@ impl TreasuryContract {
         let token = token::Client::new(&env, &token_address);
         token.transfer(&from, &env.current_contract_address(), &amount);
 
-        env.events().publish(("deposit",), (from.clone(), amount));
+        env.events().publish(
+            (
+                soroban_sdk::Symbol::new(&env, "treasury"),
+                soroban_sdk::Symbol::new(&env, "deposit"),
+            ),
+            (from.clone(), amount),
+        );
 
         Ok(())
     }
@@ -187,7 +193,7 @@ impl TreasuryContract {
             amount,
             actor: env.current_contract_address(), // We record the contract executing since it's a multisig operation
             recipient: Some(to.clone()),
-            memo,
+            memo: memo.clone(),
             ledger: env.ledger().sequence() as u64,
         };
         storage::set_entry(&env, entry);
@@ -195,7 +201,13 @@ impl TreasuryContract {
         let token = token::Client::new(&env, &storage::get_token_address(&env));
         token.transfer(&env.current_contract_address(), &to, &amount);
 
-        env.events().publish(("withdraw",), (to.clone(), amount));
+        env.events().publish(
+            (
+                soroban_sdk::Symbol::new(&env, "treasury"),
+                soroban_sdk::Symbol::new(&env, "withdraw"),
+            ),
+            (to.clone(), amount, memo),
+        );
 
         Ok(())
     }
@@ -275,6 +287,14 @@ impl TreasuryContract {
         // TODO: Map program_id to its recipient address and transfer SAC token.
         // let token = token::Client::new(&env, &storage::get_token_address(&env));
         // token.transfer(&env.current_contract_address(), &program_recipient_address, &amount);
+
+        env.events().publish(
+            (
+                soroban_sdk::Symbol::new(&env, "treasury"),
+                soroban_sdk::Symbol::new(&env, "allocate"),
+            ),
+            (program_id, amount),
+        );
 
         Ok(())
     }

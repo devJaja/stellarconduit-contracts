@@ -205,8 +205,16 @@ impl FeeDistributorContract {
         storage::set_fee_entry(&env, batch_id, &entry);
 
         env.events().publish(
-            ("distribute",),
-            (relay_address.clone(), batch_id, relay_payout),
+            (
+                soroban_sdk::Symbol::new(&env, "fee_distributor"),
+                soroban_sdk::Symbol::new(&env, "distribute"),
+            ),
+            (
+                relay_address.clone(),
+                batch_id,
+                relay_payout,
+                treasury_share,
+            ),
         );
 
         // TODO: SAC transfer treasury_share to treasury
@@ -248,8 +256,13 @@ impl FeeDistributorContract {
 
         storage::set_earnings(&env, &relay_address, &record);
 
-        env.events()
-            .publish(("claim",), (relay_address.clone(), payout));
+        env.events().publish(
+            (
+                soroban_sdk::Symbol::new(&env, "fee_distributor"),
+                soroban_sdk::Symbol::new(&env, "claim"),
+            ),
+            (relay_address.clone(), payout),
+        );
 
         // TODO: SAC transfer payout to relay_address
         Ok(payout)
@@ -295,7 +308,13 @@ impl FeeDistributorContract {
         config.fee_rate_bps = new_fee_rate_bps;
         storage::set_fee_config(&env, &config);
 
-        env.events().publish(("set_fee_rate",), (new_fee_rate_bps,));
+        env.events().publish(
+            (
+                soroban_sdk::Symbol::new(&env, "fee_distributor"),
+                soroban_sdk::Symbol::new(&env, "set_fee_rate"),
+            ),
+            (new_fee_rate_bps,),
+        );
 
         Ok(())
     }
